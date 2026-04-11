@@ -36,9 +36,9 @@ test = ["pytest>=7.0.0"]
 dev = ["build>=1.0.0", "twine>=5.0.0", "pytest>=7.0.0"]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/aioprom"
-Repository = "https://github.com/yourusername/aioprom"
-Issues = "https://github.com/yourusername/aioprom/issues"
+Homepage = "https://github.com/cheesiestmaster/aioprom"
+Repository = "https://github.com/cheesiestmaster/aioprom"
+Issues = "https://github.com/cheesiestmaster/aioprom/issues"
 
 [tool.setuptools.dynamic]
 version = { attr = "aioprom.__version__" }
