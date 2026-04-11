@@ -1,0 +1,42 @@
+#!/bin/sh
+#
+# Git hook: auto-increment patch version in aioprom/aioprom.py
+# if the VERSION line matches the last committed version (i.e. unchanged).
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+cd "$REPO_ROOT" || exit 0
+
+FILE="aioprom/aioprom.py"
+VERSION_REGEX='^VERSION: tuple\[int, int, int\] = \([0-9]+, [0-9]+, [0-9]+\)$'
+
+if [ ! -f "$FILE" ]; then
+    exit 0
+fi
+
+OLD_LINE=$(git show HEAD:"$FILE" 2>/dev/null | grep -E "$VERSION_REGEX")
+
+NEW_LINE=$(grep -E "$VERSION_REGEX" "$FILE")
+
+if [ -z "$OLD_LINE" ]; then
+    exit 0
+fi
+
+if [ "$OLD_LINE" != "$NEW_LINE" ]; then
+    echo "[pre-commit] Version already updated in $FILE, leaving it as-is."
+    exit 0
+fi
+
+PATCH=$(echo "$NEW_LINE" | sed -E 's/^VERSION: tuple\[int, int, int\] = \([0-9]+, [0-9]+, ([0-9]+)\)$/\1/')
+NEW_PATCH=$((PATCH + 1))
+
+TMPFILE=$(mktemp)
+sed -E "s/^(VERSION: tuple\[int, int, int\] = \([0-9]+, [0-9]+, )([0-9]+)(\))$/\1$NEW_PATCH\3/" "$FILE" > "$TMPFILE" && mv "$TMPFILE" "$FILE"
+
+git add "$FILE"
+
+UPDATED_LINE=$(grep -E "$VERSION_REGEX" "$FILE")
+echo "[pre-commit] Auto-incremented patch version in $FILE:"
+echo "  Before: $OLD_LINE"
+echo "  After:  $UPDATED_LINE"
+
+exit 0
