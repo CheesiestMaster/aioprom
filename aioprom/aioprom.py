@@ -2,7 +2,7 @@ import asyncio
 import sys
 import time
 
-from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Gauge
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Gauge, Counter
 
 # StreamWriter.wait_closed() is 3.7+; package requires 3.9+ for builds (setuptools>=77 / license-files).
 if sys.version_info < (3, 9):
@@ -12,7 +12,7 @@ MAX_HEADER_BYTES = 16 * 1024
 READ_TIMEOUT = 2.0
 TIMEOUT_429_INTERVAL = 1  # Minimum seconds between requests per IP
 CACHE_TIMEOUT = TIMEOUT_429_INTERVAL * 4
-VERSION: tuple[int, int, int] = (1, 0, 7)
+VERSION: tuple[int, int, int] = (1, 0, 8)
 __version__: str = ".".join(map(str, VERSION))
 ALLOWED_VERSIONS = {b'HTTP/1.0', b'HTTP/1.1'}
 SHARED_HEADERS: bytes = (
