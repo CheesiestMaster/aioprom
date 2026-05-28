@@ -1,6 +1,7 @@
 import asyncio
 import sys
 import time
+import os
 
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Gauge, Counter
 
@@ -12,7 +13,7 @@ MAX_HEADER_BYTES = 16 * 1024
 READ_TIMEOUT = 2.0
 TIMEOUT_429_INTERVAL = 1  # Minimum seconds between requests per IP
 CACHE_TIMEOUT = TIMEOUT_429_INTERVAL * 4
-VERSION: tuple[int, int, int] = (1, 0, 8)
+VERSION: tuple[int, int, int] = (1, 0, 9)
 __version__: str = ".".join(map(str, VERSION))
 ALLOWED_VERSIONS = {b'HTTP/1.0', b'HTTP/1.1'}
 SHARED_HEADERS: bytes = (
@@ -137,18 +138,19 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
     client = "unknown"
     try:
         # Rate limiting: 1 request per TIMEOUT_429_INTERVAL seconds per IP
-        peername = writer.get_extra_info('peername')
-        if peername and isinstance(peername, tuple):
-            ip, *_ = peername  # handle ipv6 by consuming all args after the first
-            if ip:
-                client = str(ip)
-                now = time.monotonic()
-                last_time = _last_seen.get(ip, 0)
-                if now - last_time < TIMEOUT_429_INTERVAL:
-                    logger.warning("rate limited %s", client)
-                    await send_simple(writer, 429)
-                    return
-                _last_seen[ip] = now
+        if os.getenv("AIOPROM_RATE_LIMITING", "0") == "1":
+            peername = writer.get_extra_info('peername')
+            if peername and isinstance(peername, tuple):
+                ip, *_ = peername  # handle ipv6 by consuming all args after the first
+                if ip:
+                    client = str(ip)
+                    now = time.monotonic()
+                    last_time = _last_seen.get(ip, 0)
+                    if now - last_time < TIMEOUT_429_INTERVAL:
+                        logger.warning("rate limited %s", client)
+                        await send_simple(writer, 429)
+                        return
+                    _last_seen[ip] = now
 
         try:
             data = await asyncio.wait_for(reader.readuntil(HDR_END), timeout=READ_TIMEOUT)
